@@ -5,7 +5,10 @@ import pandas as pd
 import numpy
 import random
 import sys
+import xlsxwriter
 import logging as log
+
+INF = float('inf')
 
 # Lettura dati dal file arff
 def read_file(arff_file):
@@ -38,6 +41,30 @@ def funzione_obiettivo(dist_matrix, index_centroids):
 
     return somma
 
+def assignment(data, index_centroids, dist_matrix):
+
+    data_cluster = numpy.zeros((len(dist_matrix), len(data[0])+1))
+    for r in range(len(dist_matrix)):
+        min = INF
+        for c in index_centroids:
+            elem = dist_matrix[r][c]
+            if elem < min:
+                min = elem
+                centroid = c
+        for j in range(len(data[0])):
+            data_cluster[r][j] = data[r][j]
+        data_cluster[r][len(data[0])] = centroid
+
+    return data_cluster
+    '''
+    workbook = xlsxwriter.Workbook('arrays.xlsx')
+    worksheet = workbook.add_worksheet()
+    row = 0
+    for col, data in enumerate(data_cluster.T):
+        worksheet.write_column(row, col, data)
+    workbook.close()
+    '''
+
 def p_median(p, dist_matrix):
 
     # Indici dei centroidi iniziali
@@ -65,7 +92,7 @@ def p_median(p, dist_matrix):
     # Iterazioni
     while not(finito):
 
-        print("**** PASSO " + str(k) + ": ")
+        log.info("**** PASSO " + str(k) + ": ")
 
         k += 1
         best_saving = 0
@@ -73,7 +100,7 @@ def p_median(p, dist_matrix):
         best_i = 0
         best_f_ob = 0
 
-        print("     Centroidi in posizione: " + str(median) + "\n")
+        log.info("     Centroidi in posizione: " + str(median) + "\n")
 
         # Iterazione su tutti gli indici del dataset
         for i in range(len(dist_matrix)):
@@ -127,9 +154,9 @@ def p_median(p, dist_matrix):
             old_best_i = best_i
             median[best_j] = best_i
             z = best_f_ob
-            print("     Confronto tra i tentativi: ")
-            print("     Best f-ob: " + str(best_f_ob))
-            print("     Best i, best j: " + str(best_i) + " " + str(best_j) + "\n" )
+            log.info("     Confronto tra i tentativi: ")
+            log.info("     Best f-ob: " + str(best_f_ob))
+            log.info("     Best i, best j: " + str(best_i) + " " + str(best_j) + "\n" )
         else:
             finito = True
 
@@ -137,10 +164,10 @@ def p_median(p, dist_matrix):
 
 
 if __name__ == '__main__':
-
     ### Inizio impostazioni per la modalità verbosa ###
     parser = argparse.ArgumentParser()
     parser.add_argument('num_cluster', type=int, help='an integer for number of cluster')
+    parser.add_argument('num_exec', type=int, help='an integer for number of starting points')
     parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
     args = parser.parse_args()
 
@@ -164,7 +191,6 @@ if __name__ == '__main__':
 
     # Matrice da utilizzare per fare i test
     #dist_matrix = [[0, 5, 7, 3, 4, 9], [5, 0, 10, 6, 8, 5], [7, 10, 0, 4, 7, 8], [3, 6, 4, 0, 2, 9], [4, 8, 7, 2, 0, 6], [9, 5, 8, 9, 6, 0]]
-
     ### Fine lettura dei dati su cui effettuare clustering
 
     # Impostazione del numero di cluster
@@ -174,17 +200,27 @@ if __name__ == '__main__':
         sys.exit()
     log.info("Numero di cluster inserito: " + str(p))
 
-    ### Inizio calcolo degli indici centroidi ###
-    # -> median: indici dei centroidi
-    # -> best_result: miglior valore della funzione obiettivo
-    median, best_f_ob = p_median(p, dist_matrix)
-    ### Fine calcolo centroidi ###
+    best_f_ob = INF
+    best_median = []
+    for x in range(1, args.num_exec+1):
+        ### Inizio calcolo degli indici centroidi ###
+        # -> median: indici dei centroidi
+        # -> best_f_ob: miglior valore della funzione obiettivo
+        median, f_ob = p_median(p, dist_matrix)
+        ### Fine calcolo centroidi ###
+        print(f_ob)
+        if f_ob < best_f_ob:
+            best_f_ob = f_ob
+            best_median = median.copy()
 
     ### Inizio stampa dei centroidi effettivi ###
-    print("\n\n**** Centroidi: ***\n")
-    for index in median:
+    print("\n**** Centroidi: ****")
+    for index in best_median:
         print(data[index])
-    print ("\nFunzione Obiettivo: " + str(best_f_ob))
+    print("\nFunzione Obiettivo: " + str(best_f_ob))
     print("\n*******************")
     ### Fine stampa dei centroidi effettivi ###
+
+    clustered_data = assignment(data, best_median, dist_matrix)
+
 
