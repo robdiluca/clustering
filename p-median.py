@@ -1,4 +1,5 @@
 from scipy.io import arff
+from scipy.io import savemat
 from scipy.spatial.distance import pdist, squareform
 import argparse
 import pandas as pd
@@ -23,7 +24,12 @@ def distance_matrix(df, nome_file):
     dist_matrix = squareform(distances)
 
     # Salvataggio su file
-    numpy.save(nome_file, dist_matrix)
+    workbook = xlsxwriter.Workbook('dist.xlsx')
+    worksheet = workbook.add_worksheet()
+    row = 0
+    for col, data in enumerate(dist_matrix.T):
+        worksheet.write_column(row, col, data)
+    workbook.close()
     return dist_matrix
 
 def funzione_obiettivo(dist_matrix, index_centroids):
@@ -186,6 +192,7 @@ if __name__ == '__main__':
     # Creazione della matrice delle distanze
     dist_matrix = distance_matrix(df, 'distance_matrix_toTest')
 
+    print (len(dist_matrix))
     # Trasformazione DataFrame (dal file .arff) in una matrice
     data = df.values
 
