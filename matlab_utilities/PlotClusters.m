@@ -87,7 +87,7 @@ switch nargin
         elseif NumOfCenters>NumOfClusters %Check that each cluster has a center
             disp('There are more centers than clusters, all will be plotted')
         end
-        if Istances<=0
+        if Instances<=0
             error('The number of istances must be greater than 0.')
         end
         Colors=hsv(NumOfCenters);
@@ -104,7 +104,7 @@ if Dimensions==2
     title(strcat(int2str(Instances),' instances'));
     xlabel('x');
     ylabel('y');
-    print(fig,strcat('./1_tentativo/clusters/clusters_',int2str(Instances)),'-dpng');
+    print(fig,strcat('./5_tentativi/clusters/clusters_',int2str(Instances)),'-dpng');
     
 else
     for i=1:NumOfCenters %plot data points 

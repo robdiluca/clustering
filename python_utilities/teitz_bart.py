@@ -8,6 +8,7 @@ import random
 import sys
 import xlsxwriter
 import logging as log
+import time
 
 INF = float('inf')
 
@@ -24,7 +25,7 @@ def distance_matrix(df, nome_file):
     dist_matrix = squareform(distances)
 
     # Salvataggio su file della matrice delle distanze
-    workbook = xlsxwriter.Workbook('../working/'+nome_file+".xlsx")
+    workbook = xlsxwriter.Workbook('distances/'+nome_file+".xlsx")
     worksheet = workbook.add_worksheet()
     row = 0
     for col, data in enumerate(dist_matrix.T):
@@ -73,7 +74,7 @@ def assignment(data, index_centroids, dist_matrix, nome_file):
                 data_cluster[r][len(data[0])] = c+1
     
     # Salvataggio su file xlsx delle assegnazioni punti - cluster
-    workbook = xlsxwriter.Workbook('../working/'+nome_file+'.xlsx')
+    workbook = xlsxwriter.Workbook('array/'+nome_file+'.xlsx')
     worksheet = workbook.add_worksheet()
     row = 0
     for col, data in enumerate(data_cluster.T):
@@ -183,16 +184,16 @@ def p_median(p, dist_matrix):
 if __name__ == '__main__':
  
     p = 4 # Numero di cluster
-    num_exec = 10 # Numero di tentativi prima di determinare il valore della soluzione
+    num_exec = 5 # Numero di tentativi prima di determinare il valore della soluzione
     
-    x = 50 # Dimensione del dataset
+    x = 100 # Dimensione del dataset
     
     # Ciclo while per analizzare i dataset di diverse dimensioni
-    while x <= 1000:
+    while x <= 5000:
         
         ### Lettura dei dati su cui effettuare il clustering ###
         # Lettura file .arff
-        df = read_file('../input/sizes1_'+str(x)+'.arff')
+        df = read_file('archivio/s-set2_'+str(x)+'.arff')
         
         # Creazione della matrice delle distanze
         dist_matrix = distance_matrix(df, 'distance_matrix_'+str(x))
@@ -204,16 +205,22 @@ if __name__ == '__main__':
            
         best_f_ob = INF
         best_median = []
+        total_time = 0
         for k in range(1, num_exec+1):
             ### Inizio calcolo degli indici centroidi ###
             # -> median: indici dei centroidi
             # -> best_f_ob: miglior valore della funzione obiettivo
+            start_time = time.time()
             median, f_ob = p_median(p, dist_matrix)
             ### Fine calcolo centroidi ###
+            completed_time = time.time() - start_time
+            total_time = total_time + completed_time
             print(f_ob)
             if f_ob < best_f_ob:
                 best_f_ob = f_ob
                 best_median = median.copy()
+
+        print("**** EXECUTION TIME: %s seconds" % (total_time))
 
         ### Inizio stampa dei centroidi effettivi ###
         print("\n**** Centroidi con "+str(x)+" istanze: ****")
@@ -233,7 +240,7 @@ if __name__ == '__main__':
         ### Fine stampa dei centroidi effettivi ###
         
         # Salvataggio matrice dei centroidi
-        workbook = xlsxwriter.Workbook('../working/centroids_'+str(x)+'.xlsx')
+        workbook = xlsxwriter.Workbook('centroids/centroids_'+str(x)+'.xlsx')
         worksheet = workbook.add_worksheet()
         row = 0
         for col, dat in enumerate(centroids_matrix.T):
@@ -242,4 +249,4 @@ if __name__ == '__main__':
         
         # Calcolo delle assegnazioni punti - cluster
         clustered_data = assignment(data, best_median, dist_matrix, 'array_'+str(x))
-        x += 50
+        x += 100

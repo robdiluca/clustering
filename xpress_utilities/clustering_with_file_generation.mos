@@ -1,0 +1,88 @@
+(!******************************************************
+   Problema di clustering (P-Mediana)
+*******************************************************!)
+
+model Clustering
+ uses "mmxprs"
+ uses "mmsystem"
+
+ declarations
+
+  clienti = 1..1000
+  centri = 1..1000
+  interval = 1..4
+
+  P : integer	! numeri di centri da aprire
+  COSTI_I_J : array (clienti,centri) of real ! distanze clienti - centri
+
+  x: array(clienti,centri) of mpvar
+  y: array(centri) of mpvar
+  cluster: array(clienti) of integer
+  index_centroids: array(1..4) of integer
+  time1 : time
+  time2 : time
+  k : integer
+ end-declarations
+
+ initializations from "distance_matrix_dat_1000.dat"
+  P
+  COSTI_I_J
+
+ end-initializations
+
+ ! Funzione obiettivo: somma delle distanze di ciascun cliente dal centro cui afferiscono
+ Obj:= sum(i in clienti, j in centri) COSTI_I_J(i,j)*x(i,j)
+
+ ! Vincolo sul numero di centri
+ sum(j in centri) y(j) = P
+
+ ! Vincoli sui clienti: la domanda di ciascun cliente deve essere soddisfatta
+ forall(i in clienti)
+   sum(j in centri) x(i,j) = 1
+
+ ! Variable upper bound: un cliente i può afferire al centro j solo se j è "aperto"
+ forall(i in clienti)
+  forall(j in centri) do
+     x(i,j) >= 0
+     x(i,j) <= y(j)
+  end-do
+
+ ! Le variabili y_j sono binarie
+ forall(j in centri)
+   y(j) is_binary
+
+ time1 := time(SYS_NOW)
+ ! Risolve il modello
+ minimize(Obj)
+ time2 := time(SYS_NOW)
+
+ fopen("output_1000.txt",F_OUTPUT)
+
+ writeln("Start Time: ", time1)
+ writeln("End Time: ", time2)
+ writeln("Execution time: ", time2 - time1)
+
+ ! Stampa la soluzione
+ writeln("Objective Function: ", getobjval)
+
+ forall(i in clienti, j in centri)
+   if ( getsol(x(i,j)) > 0.001 ) then
+     cluster(i) := j
+   end-if
+ k := 1
+ forall(j in centri)
+   if ( getsol(y(j)) > 0.001 ) then
+     writeln("y(",j,") = ", getsol(y(j)))
+     index_centroids(k) := j
+     k := k+1
+   end-if
+
+ forall(i in clienti)
+   forall(index in interval)
+    if(cluster(i) = index_centroids(index)) then
+     cluster(i) := index
+     writeln(cluster(i))
+    end-if
+ fclose(F_OUTPUT)
+
+end-model
